@@ -64,7 +64,6 @@ export default defineConfig({
 | `target_branch` | Target branch for baseline comparison | No | `main` |
 | `comment_identifier` | Unique identifier for PR comment (enables multiple comments for monorepo) | No | `''` |
 | `comment_title` | Custom title for the PR comment | No | `Bundle Diff Analysis` |
-| `skip_comment` | Skip posting PR comment | No | `false` |
 
 - `target_branch`: If you want to use a dynamic target branch (e.g., the PR base branch instead of a fixed main), use:
   `target_branch: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.ref || github.event.repository.default_branch }}`
@@ -72,8 +71,6 @@ export default defineConfig({
 - `comment_identifier`: Use this to create multiple separate comments on a PR, useful for monorepo projects where you analyze multiple apps/packages
 
 - `comment_title`: Customize the comment title to identify different apps (e.g., "Frontend App", "Backend Service")
-
-- `skip_comment`: Set to `true` if you want to skip PR comments entirely (useful when aggregating results externally)
 
 - Example
 

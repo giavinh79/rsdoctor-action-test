@@ -23,10 +23,6 @@ inputs:
     description: 'Custom title for the PR comment (e.g., "Frontend App", "Backend Service")'
     required: false
     default: 'Bundle Diff Analysis'
-  skip_comment:
-    description: 'Skip posting PR comment (useful if aggregating results externally)'
-    required: false
-    default: 'false'
 
 runs:
   using: 'node20'
