@@ -64,6 +64,34 @@ function isPullRequestEvent(): boolean {
   return isPR;
 }
 
+function isBaselinePush(): boolean {
+  const { context } = require('@actions/github');
+  
+  if (context.eventName === 'push') {
+    const targetBranch = getInput('target_branch') || 'main';
+    
+    if (context.ref !== `refs/heads/${targetBranch}`) {
+      return false;
+    }
+    
+    const commitMessage = context.payload.head_commit?.message || '';
+    const isMergeCommit = commitMessage.startsWith('Merge pull request #');
+    
+    if (isMergeCommit) {
+      console.log('ℹ️  Push event is from a PR merge - skipping (already handled by merge event)');
+      return false;
+    }
+    
+    console.log(`📤 Detected push to baseline branch: ${targetBranch}`);
+    console.log(`   Commit: ${context.payload.head_commit?.id?.substring(0, 10)}`);
+    console.log(`   Message: ${commitMessage.split('\n')[0]}`);
+    console.log(`   This is a direct push - uploading baseline artifact`);
+    return true;
+  }
+  
+  return false;
+}
+
 function runRsdoctorViaNode(requirePath: string, args: string[] = []) {
   const nodeExec = process.execPath;
   console.log('process.execPath =', nodeExec);
@@ -97,8 +125,9 @@ function runRsdoctorViaNode(requirePath: string, args: string[] = []) {
     const artifactNamePattern = `${pathHash}-`;
     console.log(`Artifact name pattern: ${artifactNamePattern}`);
     
-    if (isMergeEvent()) {
-      console.log('🔄 Detected merge event - uploading current branch artifact only');
+    if (isMergeEvent() || isBaselinePush()) {
+      const eventType = isMergeEvent() ? 'merge event' : 'baseline push';
+      console.log(`🔄 Detected ${eventType} - uploading baseline artifact`);
       
       const uploadResponse = await uploadArtifact(fullPath, currentCommitHash);
       
@@ -256,8 +285,11 @@ A detailed bundle diff analysis has been generated using Rsdoctor. You can downl
       await generateBundleAnalysisReport(currentBundleAnalysis, baselineBundleAnalysis || undefined);
       
     } else {
-      console.log('ℹ️ Skipping artifact operations - this action only runs on merge events and pull requests');
-      console.log('Current event:', process.env.GITHUB_EVENT_NAME);
+      console.log('ℹ️ Skipping artifact operations - this action only runs on:');
+      console.log('   • Pull request events (for comparison)');
+      console.log('   • Pull request merge events (to upload baseline)');
+      console.log('   • Direct pushes to baseline branch (to upload baseline)');
+      console.log(`Current event: ${process.env.GITHUB_EVENT_NAME}`);
       return;
     }
 
