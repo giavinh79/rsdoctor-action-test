@@ -253,9 +253,11 @@ export class GitHubService {
     }
   }
 
-  async updateOrCreateComment(prNumber: number, body: string): Promise<void> {
+  async updateOrCreateComment(prNumber: number, body: string, identifier?: string): Promise<void> {
     const { owner, repo } = this.repository;
-    const commentPrefix = '## Rsdoctor Bundle Diff Analysis';
+    const commentPrefix = identifier 
+      ? `## Rsdoctor Bundle Diff Analysis - ${identifier}`
+      : '## Rsdoctor Bundle Diff Analysis';
     
     try {
       const existingCommentId = await this.findExistingComment(prNumber, commentPrefix);

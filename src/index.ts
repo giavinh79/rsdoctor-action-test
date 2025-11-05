@@ -214,10 +214,16 @@ function runRsdoctorViaNode(requirePath: string, args: string[] = []) {
             if (isPullRequestEvent()) {
               const { context } = require('@actions/github');
               
-              // Generate bundle analysis markdown for PR comment
+              const commentIdentifier = getInput('comment_identifier');
+              const commentTitle = getInput('comment_title') || 'Bundle Diff Analysis';
+              
               const bundleAnalysisMarkdown = generateBundleAnalysisMarkdown(currentBundleAnalysis, baselineBundleAnalysis || undefined);
               
-              const commentBody = `## Rsdoctor Bundle Diff Analysis
+              const commentHeader = commentIdentifier 
+                ? `## Rsdoctor ${commentTitle} - ${commentIdentifier}`
+                : `## Rsdoctor ${commentTitle}`;
+              
+              const commentBody = `${commentHeader}
 
 ${bundleAnalysisMarkdown}
 
@@ -231,7 +237,8 @@ A detailed bundle diff analysis has been generated using Rsdoctor. You can downl
               try {
                 await githubService.updateOrCreateComment(
                   context.payload.pull_request.number,
-                  commentBody
+                  commentBody,
+                  commentIdentifier
                 );
                 console.log('✅ Added/updated bundle diff comment to PR');
               } catch (commentError) {
