@@ -7,6 +7,7 @@ import path from 'path';
 import { execFile } from 'child_process';
 import { promisify } from 'util';
 import { spawnSync } from 'child_process';
+import * as fs from 'fs';
 const execFileAsync = promisify(execFile);
 
 function isMergeEvent(): boolean {
@@ -226,9 +227,15 @@ function runRsdoctorViaNode(requirePath: string, args: string[] = []) {
 
           // Heuristically locate generated HTML in output dir
           const diffHtmlPath = path.join(tempOutDir, 'rsdoctor-diff.html');
+          
+          // Rename to include pathHash for uniqueness in monorepo
+          const uniqueDiffHtmlName = `rsdoctor-diff-${pathHash}.html`;
+          const uniqueDiffHtmlPath = path.join(tempOutDir, uniqueDiffHtmlName);
+          fs.renameSync(diffHtmlPath, uniqueDiffHtmlPath);
+          
           try {
             // Upload diff html as artifact
-            const uploadRes = await uploadArtifact(diffHtmlPath, currentCommitHash);
+            const uploadRes = await uploadArtifact(uniqueDiffHtmlPath, currentCommitHash);
             console.log(`✅ Uploaded bundle diff HTML, artifact id: ${uploadRes.id}`);
 
             const artifactDownloadLink = `${process.env.GITHUB_SERVER_URL}/${process.env.GITHUB_REPOSITORY}/actions/runs/${process.env.GITHUB_RUN_ID}/artifacts/${uploadRes.id}`;
