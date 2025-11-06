@@ -86,13 +86,14 @@ export async function downloadArtifact(artifactId: number, fileName: string) {
   }
 }
 
-export async function downloadArtifactByCommitHash(commitHash: string, fileName: string) {
+export async function downloadArtifactByCommitHash(commitHash: string, fileName: string, pathHash?: string) {
   console.log(`🔍 Looking for artifact with commit hash: ${commitHash}`);
   
   const githubService = new GitHubService();
   
-  console.log(`📋 Searching for artifacts matching commit hash: ${commitHash}`);
-  const artifact = await githubService.findArtifactByNamePattern(commitHash);
+  const searchPattern = pathHash ? `${pathHash}-${commitHash}` : commitHash;
+  console.log(`📋 Searching for artifacts matching pattern: ${searchPattern}`);
+  const artifact = await githubService.findArtifactByNamePattern(searchPattern);
   
   if (!artifact) {
     console.log(`❌ No artifact found for commit hash: ${commitHash}`);

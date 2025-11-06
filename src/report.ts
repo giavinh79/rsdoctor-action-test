@@ -66,6 +66,33 @@ function formatBytes(bytes: number): string {
   return `${isNegative ? '-' : ''}${value} ${sizes[i]}`;
 }
 
+export interface SizeGateResult {
+  passed: boolean;
+  reason?: string;
+}
+
+export function checkSizeGate(
+  current: BundleAnalysis,
+  baseline: BundleAnalysis | undefined,
+  maxKbIncrease?: number
+): SizeGateResult {
+  if (!baseline || maxKbIncrease === undefined) {
+    return { passed: true };
+  }
+
+  const diff = current.totalSize - baseline.totalSize;
+  const maxSizeIncrease = maxKbIncrease * 1024;
+  
+  if (diff > maxSizeIncrease) {
+    return {
+      passed: false,
+      reason: `Bundle size increased by ${formatBytes(diff)}, exceeding limit of ${maxKbIncrease} KB`
+    };
+  }
+  
+  return { passed: true };
+}
+
 export function parseRsdoctorData(filePath: string): BundleAnalysis | null {
   try {
     if (!fs.existsSync(filePath)) {

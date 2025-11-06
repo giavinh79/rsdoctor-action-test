@@ -23,6 +23,14 @@ inputs:
     description: 'Custom title for the PR comment (e.g., "Frontend App", "Backend Service")'
     required: false
     default: 'Bundle Diff Analysis'
+  max_kb_increase:
+    description: 'Maximum allowed bundle size increase in KB (e.g., "500" for 500KB, "0" to fail on any increase). Action fails if exceeded.'
+    required: false
+    default: ''
+  skip_size_check:
+    description: 'Set to "true" to bypass size gate check (e.g., when bundle increase is approved)'
+    required: false
+    default: 'false'
 
 runs:
   using: 'node20'

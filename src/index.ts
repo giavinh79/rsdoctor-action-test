@@ -2,7 +2,7 @@ import { setFailed, getInput, summary } from '@actions/core';
 import { uploadArtifact, hashPath } from './upload';
 import { downloadArtifactByCommitHash } from './download';
 import { GitHubService } from './github';
-import { loadSizeData, generateSizeReport, parseRsdoctorData, generateBundleAnalysisReport, generateBundleAnalysisMarkdown, BundleAnalysis } from './report';
+import { loadSizeData, generateSizeReport, parseRsdoctorData, generateBundleAnalysisReport, generateBundleAnalysisMarkdown, BundleAnalysis, checkSizeGate } from './report';
 import path from 'path';
 import { execFile } from 'child_process';
 import { promisify } from 'util';
@@ -168,7 +168,7 @@ function runRsdoctorViaNode(requirePath: string, args: string[] = []) {
         
         try {
           console.log('📥 Attempting to download target branch artifact...');
-          const downloadResult = await downloadArtifactByCommitHash(targetCommitHash, fileName);
+          const downloadResult = await downloadArtifactByCommitHash(targetCommitHash, fileName, pathHash);
           const downloadedBaselinePath = path.join(downloadResult.downloadPath, fileName);
           baselineJsonPath = downloadedBaselinePath;
           
@@ -284,6 +284,24 @@ A detailed bundle diff analysis has been generated using Rsdoctor. You can downl
 
       await generateBundleAnalysisReport(currentBundleAnalysis, baselineBundleAnalysis || undefined);
       
+      // Check size gate
+      const skipSizeCheck = getInput('skip_size_check') === 'true';
+      const maxKbInput = getInput('max_kb_increase');
+      
+      if (!skipSizeCheck && maxKbInput && baselineBundleAnalysis) {
+        const maxKbIncrease = parseFloat(maxKbInput);
+        if (isNaN(maxKbIncrease)) {
+          setFailed(`❌ Invalid max_kb_increase value: ${maxKbInput}. Must be a number.`);
+        } else {
+          const gateResult = checkSizeGate(currentBundleAnalysis, baselineBundleAnalysis, maxKbIncrease);
+          
+          if (!gateResult.passed) {
+            setFailed(`❌ Size gate check failed: ${gateResult.reason}`);
+          }
+        }
+      } else if (skipSizeCheck && maxKbInput) {
+        console.log('⚠️  Size gate check skipped (skip_size_check=true)');
+      }
     } else {
       console.log('ℹ️ Skipping artifact operations - this action only runs on:');
       console.log('   • Pull request events (for comparison)');
