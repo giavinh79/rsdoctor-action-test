@@ -1,4 +1,4 @@
-import { DefaultArtifactClient } from '@actions/artifact';
+import { DefaultArtifactClient, UploadArtifactOptions } from '@actions/artifact';
 import path from 'path';
 import * as fs from 'fs';
 import { execSync } from 'child_process';
@@ -9,7 +9,7 @@ export function hashPath(pathParts: string[], fileNameWithoutExt: string): strin
   return createHash('sha256').update(pathString).digest('hex').substring(0, 8);
 }
 
-export async function uploadArtifact(filePath: string, commitHash?: string) {
+export async function uploadArtifact(filePath: string, commitHash?: string, options?: UploadArtifactOptions) {
   const artifactClient = new DefaultArtifactClient();
   
   const hash = commitHash || execSync('git rev-parse --short=10 HEAD', { encoding: 'utf8' }).trim();
@@ -36,6 +36,7 @@ export async function uploadArtifact(filePath: string, commitHash?: string) {
     artifactName,
     [targetFilePath],
     path.dirname(targetFilePath),
+    options,
   );
   
   return uploadResponse;

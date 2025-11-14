@@ -235,7 +235,9 @@ function runRsdoctorViaNode(requirePath: string, args: string[] = []) {
           
           try {
             // Upload diff html as artifact
-            const uploadRes = await uploadArtifact(uniqueDiffHtmlPath, currentCommitHash);
+            const uploadRes = await uploadArtifact(uniqueDiffHtmlPath, currentCommitHash, {
+              retentionDays: 2, // retain HTML diff artifacts for only 2 days to conserve artifact storage space
+            });
             console.log(`✅ Uploaded bundle diff HTML, artifact id: ${uploadRes.id}`);
 
             const artifactDownloadLink = `${process.env.GITHUB_SERVER_URL}/${process.env.GITHUB_REPOSITORY}/actions/runs/${process.env.GITHUB_RUN_ID}/artifacts/${uploadRes.id}`;
