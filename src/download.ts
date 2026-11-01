@@ -172,15 +172,32 @@ export async function downloadArtifactByCommitHash(
   console.log(`   Path hash: ${pathHash}`);
   console.log(`   File path: ${relativePath}`);
 
-  // Try to find all workflow runs by commit hash first (more efficient)
-  console.log(`🔍 Looking for workflow runs with commit hash: ${commitHash}`);
-  const workflowRuns =
-    await githubService.findAllWorkflowRunsByCommit(commitHash);
-
   let artifact: any = null;
   let artifacts: any = null;
 
-  if (workflowRuns && workflowRuns.length > 0) {
+  // The name is deterministic, so look it up directly. The workflow-run scan
+  // below only sees 30 runs per commit and the repository-wide listing only
+  // the newest 100 artifacts, which both miss on busy repositories.
+  try {
+    artifact = await githubService.findArtifactByName([
+      ...compatibleArtifactNames,
+    ]);
+    if (artifact) {
+      console.log(`✅ Found artifact by name: ${artifact.name}`);
+    } else {
+      console.log(`⚠️  No artifact named ${expectedArtifactName}`);
+    }
+  } catch (nameLookupError) {
+    console.warn(`⚠️  Artifact lookup by name failed: ${nameLookupError}`);
+  }
+
+  let workflowRuns: any[] = [];
+  if (!artifact) {
+    console.log(`🔍 Looking for workflow runs with commit hash: ${commitHash}`);
+    workflowRuns = await githubService.findAllWorkflowRunsByCommit(commitHash);
+  }
+
+  if (!artifact && workflowRuns.length > 0) {
     console.log(
       `✅ Found ${workflowRuns.length} workflow run(s) for commit ${commitHash}`,
     );
@@ -231,7 +248,7 @@ export async function downloadArtifactByCommitHash(
       );
       console.log(`🔄 Falling back to listing all repository artifacts...`);
     }
-  } else {
+  } else if (!artifact) {
     console.log(`⚠️  No workflow runs found for commit ${commitHash}`);
     console.log(`🔄 Falling back to listing all repository artifacts...`);
   }

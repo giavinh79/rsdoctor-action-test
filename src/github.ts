@@ -17,6 +17,7 @@ export interface WorkflowRunParams {
 interface Artifact {
   id: number;
   name: string;
+  expired?: boolean;
 }
 
 interface Comment {
@@ -310,6 +311,30 @@ export class GitHubService {
       });
 
     return artifactsResponse.data;
+  }
+
+  /**
+   * Find the newest unexpired artifact with one of the given names, trying the
+   * names in order. Filtering by name is one indexed lookup per name, so it
+   * does not depend on how many runs or artifacts the repository has.
+   */
+  async findArtifactByName(names: string[]): Promise<Artifact | null> {
+    const { owner, repo } = this.repository;
+
+    for (const name of names) {
+      const { data } = await this.octokit.rest.actions.listArtifactsForRepo({
+        owner,
+        repo,
+        name,
+        per_page: 100,
+      });
+      const newest = (data.artifacts as Artifact[])
+        .filter((artifact) => !artifact.expired)
+        .sort((a, b) => b.id - a.id)[0];
+      if (newest) return newest;
+    }
+
+    return null;
   }
 
   /**
